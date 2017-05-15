@@ -18,6 +18,7 @@ class DonationFactory
     {
         return new Donation(
             $request->getAmount() * 100,
+            $request->getFrequency(),
             $request->getGender(),
             $request->getFirstName(),
             $request->getLastName(),
@@ -28,8 +29,7 @@ class DonationFactory
                 $request->getCityName(),
                 $request->getAddress()
             ),
-            $request->getPhone(),
-            $request->getFrequency()
+            $request->getPhone()
         );
     }
 }
