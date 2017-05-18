@@ -4,16 +4,19 @@ namespace AppBundle\Donation;
 
 use AppBundle\Entity\Adherent;
 use libphonenumber\PhoneNumber;
+use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;
 
 class DonationRequestFactory
 {
     public function createFromRequest(Request $request, float $amount, $currentUser = null): DonationRequest
     {
+        $clientIp = $request->getClientIp();
+
         if ($currentUser instanceof Adherent) {
-            $donation = DonationRequest::createFromAdherent($currentUser, $amount);
+            $donation = $this->createFromAdherent($currentUser, $clientIp, $amount);
         } else {
-            $donation = new DonationRequest($amount);
+            $donation = new DonationRequest(Uuid::uuid4(), $clientIp, $amount);
         }
 
         if (($gender = $request->query->get('ge')) && in_array($gender, ['male', 'female'], true)) {
@@ -53,21 +56,23 @@ class DonationRequestFactory
         }
 
         if (($phoneCode = $request->query->get('phc')) && ($phoneNumber = $request->query->get('phn'))) {
-            $phone = new PhoneNumber();
-            $phone->setCountryCode($phoneCode);
-            $phone->setNationalNumber($phoneNumber);
-
-            $donation->setPhone($phone);
+            $donation->setPhone($this->createPhoneNumber($phoneCode, $phoneNumber));
         }
 
         return $donation;
     }
 
-    public function createFromAdherent(Adherent $adherent, int $defaultAmount = 50): DonationRequest
+    private function createPhoneNumber(string $phoneCode, string $nationalNumber): PhoneNumber
     {
-        $donation = DonationRequest::createFromAdherent($adherent);
-        $donation->setAmount($defaultAmount);
+        $phone = new PhoneNumber();
+        $phone->setCountryCode($phoneCode);
+        $phone->setNationalNumber($nationalNumber);
 
-        return $donation;
+        return $phone;
+    }
+
+    public function createFromAdherent(Adherent $adherent, string $clientIp, int $defaultAmount = 50): DonationRequest
+    {
+        return DonationRequest::createFromAdherent($adherent, $clientIp, $defaultAmount);
     }
 }
